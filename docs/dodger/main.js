@@ -1,7 +1,8 @@
-title = "Dodger";
+title = "Flash Dodge";
 
 description = `
-[Tap] To Turn Once The Screen Flashes
+     [Tap] 
+  Dodge Lasers 
 `;
 
 characters = [
@@ -28,7 +29,7 @@ ll  ll
 ];
 
 options = {
-  theme: "dark",
+  theme: "crt",
   isPlayingBgm: true,
   isReplayEnabled: true,
   seed: 3,
@@ -48,8 +49,13 @@ let stars;
 let player;
 let multiplier;
 
-let nextLaserTime = 25; // 2 seconds delay (60 frames per second)
-let lastPlayerX;
+let nextLaserTime = 120; // 2 seconds delay (60 frames per second)
+let warningTime = 30; // Warning time in frames before the laser comes down
+let isWarning = false; // Flag to track if a warning is currently active
+
+let dodgeState = "none"; 
+let playerStartPosition;
+let canMove = false; // Flag to track whether the player can move
 
 function update() {
   if (!ticks) {
@@ -57,26 +63,82 @@ function update() {
     activeTicks = -1;
     stars = [];
     player = { x: 40, vx: 1 };
-    lastPlayerX = player.x;
     multiplier = 1;
   }
 
+  // Check if the space bar is pressed to allow movement
+  if (input.isJustPressed) {
+    canMove = true;
+    // Set the initial movement direction randomly
+    dodgeState = rnd() < 0.5 ? "left" : "right";
+  }
+
+  if (canMove) {
+    // Determine the direction of movement based on dodgeState
+    if (dodgeState === "left") {
+      player.x -= 2; // Move left
+      // Check if the player is at the left edge
+      if (player.x < 0) {
+        player.x = 0; // Set player's position to the left edge
+        dodgeState = "right"; // Change direction to right
+      }
+    } else if (dodgeState === "right") {
+      player.x += 2; // Move right
+      // Check if the player is at the right edge
+      if (player.x > 99) {
+        player.x = 99; // Set player's position to the right edge
+        dodgeState = "left"; // Change direction to left
+      }
+    }
+
+    // Check if the button is released
+    if (input.isJustReleased) {
+      canMove = false; // Stop the player's movement
+    }
+  }
+
   if (nextLaserTime <= 0) {
-    const startX = lastPlayerX; // Laser starts from the player's last X position
-    const startY = 0;
-    const endY = 90; // Ending Y position
-    lines.push({
-      from: vec(startX, startY),
-      to: vec(startX, endY), // Straight down to the bottom
-      vel: vec(0, 1), // Straight down
-      ticks: ceil(30 / difficulty),
-      prevLine: undefined,
-      isActive: false,
-    });
-    nextLaserTime = 120; // Reset the delay timer
+    // Check if it's time to display a warning
+    if (warningTime > 0 && warningTime % 10 === 0) {
+      isWarning = !isWarning; // Toggle warning status every 10 frames
+      if (isWarning) {
+        playerStartPosition = vec(player.x, 87); // Store the player's position
+      }
+    }  
+    // Display warning background
+    if (isWarning) {
+      color("red");
+      rect(0, 0, 100, 90);
+    }
+    
+    if (warningTime === 0) {
+      isWarning = false;
+      const startX = playerStartPosition.x; // Use the stored player position
+      const startY = 0;
+      const endY = 90;
+
+      // Move this block outside of the dodgeState === "none" condition
+      lines.push({
+        from: vec(startX, startY),
+        to: vec(startX, endY),
+        vel: vec(0, 1),
+        ticks: ceil(30 / difficulty),
+        prevLine: undefined,
+        isActive: false,
+      });
+
+      // Reset dodgeState after creating the laser line
+      dodgeState = "none";
+
+      nextLaserTime = 120;
+      warningTime = 30; // Reset the warning time for the next laser
+    } else {
+      warningTime--;
+    }
   } else {
     nextLaserTime--;
   }
+
   color("light_blue");
   rect(0, 90, 100, 10);
   activeTicks--;
@@ -96,7 +158,7 @@ function update() {
     if (l.ticks > 0) {
       l.to.add(l.vel);
       if (activeTicks < 0 && (l.to.y > 90 || lines.length > 160)) {
-        play("explosion");
+        play("laser");
         let al = l;
         color("yellow");
         for (let i = 0; i < 99; i++) {
@@ -131,43 +193,23 @@ function update() {
     color("light_black");
     line(l.from, l.to, 2);
   });
-  if (
-    input.isJustPressed ||
-    (player.x < 0 && player.vx < 0) ||
-    (player.x > 99 && player.vx > 0)
-  ) {
-    play("laser");
-    player.vx *= -1;
-    lastPlayerX = player.x; // Store the player's position before the change
-  }
+  // if (
+  //   input.isJustPressed ||
+  //   (player.x < 0 && player.vx < 0) ||
+  //   (player.x > 99 && player.vx > 0)
+  // ) {
+  //   play("laser");
+  //   player.vx *= -1;
+  // }
 
-  player.x += player.vx * sqrt(difficulty);
+  // player.x += player.vx * sqrt(difficulty);
   color("black");
   if (
     char(addWithCharCode("b", floor(ticks / 10) % 2), player.x, 87, {
       mirror: { x: player.vx > 0 ? 1 : -1 },
     }).isColliding.rect.yellow
   ) {
-    play("lucky");
+    play("explosion");
     end();
   }
-  color("yellow");
-  remove(stars, (s) => {
-    s.vel.y += 0.1 * difficulty;
-    s.pos.add(s.vel);
-    if (s.pos.y > 89 && s.vel.y > 0) {
-      s.vel.y *= -0.5;
-      if (s.vel.y > -0.1) {
-        return true;
-      }
-    }
-    const c = char("a", s.pos).isColliding.char;
-    if (c.b || c.c) {
-      play("coin");
-      addScore(multiplier, s.pos);
-      multiplier++;
-      return true;
-    }
-  });
 }
-
