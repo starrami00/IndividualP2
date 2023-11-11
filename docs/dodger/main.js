@@ -1,7 +1,7 @@
 title = "Flash Dodge";
 
 description = `
-     [Tap] 
+    [TAP] 
   Dodge Lasers 
 `;
 
@@ -193,16 +193,7 @@ function update() {
     color("light_black");
     line(l.from, l.to, 2);
   });
-  // if (
-  //   input.isJustPressed ||
-  //   (player.x < 0 && player.vx < 0) ||
-  //   (player.x > 99 && player.vx > 0)
-  // ) {
-  //   play("laser");
-  //   player.vx *= -1;
-  // }
-
-  // player.x += player.vx * sqrt(difficulty);
+  
   color("black");
   if (
     char(addWithCharCode("b", floor(ticks / 10) % 2), player.x, 87, {
