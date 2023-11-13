@@ -48,14 +48,17 @@ let stars;
 /** @type {{x: number, vx: number}} */
 let player;
 let multiplier;
-
-let nextLaserTime = 120; // 2 seconds delay (60 frames per second)
-let warningTime = 30; // Warning time in frames before the laser comes down
-let isWarning = false; // Flag to track if a warning is currently active
-
+// 2 Second delay
+let nextLaserTime = 120;
+// Warning time in frames before the laser shoots down
+let warningTime = 30;
+// Flag to track if a warning is currently active 
+let isWarning = false; 
+// Track if the player moved
 let dodgeState = "none"; 
 let playerStartPosition;
-let canMove = false; // Flag to track whether the player can move
+// Flag to track whether the player can move
+let canMove = false; 
 
 function update() {
   if (!ticks) {
@@ -65,8 +68,9 @@ function update() {
     player = { x: 40, vx: 1 };
     multiplier = 1;
   }
-
-  // Check if the space bar is pressed to allow movement
+  // Set The Score Tracker
+  score = ticks/60;
+  // Check if a button is pressed to allow movement
   if (input.isJustPressed) {
     canMove = true;
     // Set the initial movement direction randomly
@@ -76,33 +80,42 @@ function update() {
   if (canMove) {
     // Determine the direction of movement based on dodgeState
     if (dodgeState === "left") {
-      player.x -= 2; // Move left
-      // Check if the player is at the left edge
+      // Move left
+      player.x -= 2; 
+      // Check if the player is at the left edge (Prevents player from moving left if at the end of screen)
       if (player.x < 0) {
-        player.x = 0; // Set player's position to the left edge
-        dodgeState = "right"; // Change direction to right
+        // Set player's position to the left edge
+        player.x = 0; 
+        // Change chosen direction to right
+        dodgeState = "right"; 
       }
     } else if (dodgeState === "right") {
-      player.x += 2; // Move right
-      // Check if the player is at the right edge
+      // Move right
+      player.x += 2; 
+      // Check if the player is at the right edge (Prevents player from moving right if at the end of screen)
       if (player.x > 99) {
-        player.x = 99; // Set player's position to the right edge
-        dodgeState = "left"; // Change direction to left
+        // Set player's position to the right edge
+        player.x = 99; 
+        // Change chosen direction to left
+        dodgeState = "left"; 
       }
     }
 
     // Check if the button is released
     if (input.isJustReleased) {
-      canMove = false; // Stop the player's movement
+      // Stop the player's movement
+      canMove = false; 
     }
   }
 
   if (nextLaserTime <= 0) {
     // Check if it's time to display a warning
     if (warningTime > 0 && warningTime % 10 === 0) {
-      isWarning = !isWarning; // Toggle warning status every 10 frames
+      // Toggle warning status every 10 frames
+      isWarning = !isWarning; 
       if (isWarning) {
-        playerStartPosition = vec(player.x, 87); // Store the player's position
+        // Store the player's position
+        playerStartPosition = vec(player.x, 87); 
       }
     }  
     // Display warning background
@@ -113,11 +126,11 @@ function update() {
     
     if (warningTime === 0) {
       isWarning = false;
-      const startX = playerStartPosition.x; // Use the stored player position
+      // Use the stored player position
+      const startX = playerStartPosition.x; 
       const startY = 0;
       const endY = 90;
-
-      // Move this block outside of the dodgeState === "none" condition
+      // Create laser line
       lines.push({
         from: vec(startX, startY),
         to: vec(startX, endY),
@@ -126,23 +139,24 @@ function update() {
         prevLine: undefined,
         isActive: false,
       });
-
       // Reset dodgeState after creating the laser line
       dodgeState = "none";
-
+      // Reset laser time 
       nextLaserTime = 120;
-      warningTime = 30; // Reset the warning time for the next laser
+      // Reset the warning time
+      warningTime = 30; 
     } else {
       warningTime--;
     }
   } else {
     nextLaserTime--;
   }
-
+  // Create ground
   color("light_blue");
   rect(0, 90, 100, 10);
   activeTicks--;
   remove(lines, (l) => {
+    // Draw laser
     if (l.isActive) {
       color("yellow");
       line(l.from, l.to, 4);
@@ -157,6 +171,7 @@ function update() {
     }
     if (l.ticks > 0) {
       l.to.add(l.vel);
+      // Create particles from laser beam
       if (activeTicks < 0 && (l.to.y > 90 || lines.length > 160)) {
         play("laser");
         let al = l;
@@ -193,11 +208,12 @@ function update() {
     color("light_black");
     line(l.from, l.to, 2);
   });
-  
+  // Create character
   color("black");
   if (
     char(addWithCharCode("b", floor(ticks / 10) % 2), player.x, 87, {
       mirror: { x: player.vx > 0 ? 1 : -1 },
+      // Check if player is hit by laser
     }).isColliding.rect.yellow
   ) {
     play("explosion");
